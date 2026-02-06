@@ -1,5 +1,5 @@
 {
-  "name": "Math Buddies Quiz",
-  "description": "A colorful, interactive math game for kids featuring addition and subtraction up to 20, using visual aids like fingers, cakes, and toys to help learning.",
+  "name": "חברים למתמטיקה",
+  "description": "משחק חשבון צבעוני ואינטראקטיבי לילדים הכולל תרגילי חיבור וחיסור עד 20, בעזרת עזרים חזותיים כמו אצבעות, עוגות וצעצועים.",
   "requestFramePermissions": []
 }

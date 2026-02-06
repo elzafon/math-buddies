@@ -1,11 +1,25 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { GoogleGenAI } from "@google/genai";
 import { Problem, GameStatus } from './types';
 import { generateProblem } from './utils/mathGenerator';
 import ObjectVisual from './components/ObjectVisual';
 import GameMenu from './components/GameMenu';
-import { Trophy, ArrowRight, RefreshCw, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Trophy, ArrowLeft, ArrowRight, X, CheckCircle2, AlertCircle } from 'lucide-react';
+
+const SUCCESS_MESSAGES = [
+  "וואו, אתה פשוט אלוף בחשבון!",
+  "כל הכבוד! איזה יופי!",
+  "מצוין! אתה ממש גאון!",
+  "מדהים! המשך ככה!",
+  "איזו הצלחה! כל הכבוד!"
+];
+
+const TRY_AGAIN_MESSAGES = [
+  "לא נורא, נסה שוב!",
+  "קרוב מאוד! נסה פעם נוספת.",
+  "אל תוותר, אתה כמעט שם!",
+  "נסה עוד פעם אחת, אתה יכול!"
+];
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<GameStatus>(GameStatus.MENU);
@@ -14,7 +28,7 @@ const App: React.FC = () => {
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [aiCheer, setAiCheer] = useState<string>('');
+  const [cheer, setCheer] = useState<string>('');
   
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -23,7 +37,7 @@ const App: React.FC = () => {
     setCurrentProblem(p);
     setUserInput('');
     setFeedback(null);
-    setAiCheer('');
+    setCheer('');
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);
 
@@ -34,21 +48,10 @@ const App: React.FC = () => {
     nextLevel(0);
   };
 
-  const getEncouragement = async (isCorrect: boolean) => {
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = isCorrect 
-        ? "Give a short, super enthusiastic 3-5 word encouragement for a child who just got a math problem right."
-        : "Give a short, gentle 3-5 word encouragement for a child to try a math problem again.";
-      
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-      });
-      setAiCheer(response.text || '');
-    } catch (e) {
-      setAiCheer(isCorrect ? "Great job!" : "Keep trying!");
-    }
+  const showEncouragement = (isCorrect: boolean) => {
+    const list = isCorrect ? SUCCESS_MESSAGES : TRY_AGAIN_MESSAGES;
+    const randomMsg = list[Math.floor(Math.random() * list.length)];
+    setCheer(randomMsg);
   };
 
   const handleSubmit = (e?: React.FormEvent) => {
@@ -58,17 +61,17 @@ const App: React.FC = () => {
     const userVal = parseInt(userInput);
     if (userVal === currentProblem.answer) {
       const newScore = score + 10;
-      setFeedback({ type: 'success', message: 'Correct!' });
+      setFeedback({ type: 'success', message: 'נכון מאוד!' });
       setScore(newScore);
       setStreak(s => s + 1);
-      getEncouragement(true);
+      showEncouragement(true);
       setTimeout(() => {
         nextLevel(newScore);
       }, 2000);
     } else {
-      setFeedback({ type: 'error', message: 'Not quite! Try again.' });
+      setFeedback({ type: 'error', message: 'לא בדיוק, נסה שוב!' });
       setStreak(0);
-      getEncouragement(false);
+      showEncouragement(false);
       setUserInput('');
     }
   };
@@ -117,7 +120,8 @@ const App: React.FC = () => {
             {currentProblem && (
               <div className={`w-full ${currentProblem.bgColor} p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] card-shadow border-4 sm:border-8 border-white flex flex-col items-center justify-center transition-all duration-500`}>
                 
-                <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 mb-6 sm:mb-10">
+                {/* Equation Container - Explicitly LTR for math logic */}
+                <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 mb-6 sm:mb-10" dir="ltr">
                   {/* Left Number */}
                   <span className="text-6xl sm:text-8xl font-fun text-white drop-shadow-md">
                     {currentProblem.num1}
@@ -155,9 +159,9 @@ const App: React.FC = () => {
                       {feedback.message}
                     </div>
                   )}
-                  {!feedback && aiCheer && (
+                  {!feedback && cheer && (
                     <div className="text-white font-fun text-lg sm:text-2xl animate-pulse italic">
-                      "{aiCheer}"
+                      "{cheer}"
                     </div>
                   )}
                 </div>
@@ -165,7 +169,7 @@ const App: React.FC = () => {
             )}
 
             {/* Number Pad for Mobile/Tablets */}
-            <div className="mt-6 sm:mt-8 grid grid-cols-5 gap-2 sm:gap-3 w-full max-w-sm sm:max-w-md">
+            <div className="mt-6 sm:mt-8 grid grid-cols-5 gap-2 sm:gap-3 w-full max-w-sm sm:max-w-md" dir="ltr">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(n => (
                 <button
                   key={n}
@@ -179,13 +183,13 @@ const App: React.FC = () => {
                 onClick={handleClear}
                 className="col-span-2 bg-red-100 hover:bg-red-200 text-red-600 font-fun text-lg sm:text-xl py-3 sm:py-4 rounded-xl sm:rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center touch-manipulation"
               >
-                Clear
+                מחיקה
               </button>
               <button
                 onClick={() => handleSubmit()}
                 className="col-span-3 bg-indigo-600 hover:bg-indigo-700 text-white font-fun text-lg sm:text-xl py-3 sm:py-4 rounded-xl sm:rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 touch-manipulation"
               >
-                Check <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
+                בדיקה <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
 
@@ -205,9 +209,9 @@ const App: React.FC = () => {
 
       {/* Footer Decoration */}
       <footer className="mt-4 sm:mt-auto py-4 text-gray-400 flex gap-4 text-xs sm:text-sm font-medium">
-         <span>Learn with Joy</span>
+         <span>לומדים בשמחה</span>
          <span>•</span>
-         <span>Count to 20</span>
+         <span>סופרים עד 20</span>
       </footer>
     </div>
   );
